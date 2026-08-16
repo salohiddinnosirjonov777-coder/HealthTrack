@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bugun - HealthTrack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="css/style.css?v=3">
+</head>
+<body>
+  <canvas id="bg3d-canvas"></canvas>
+  <div class="wrap">
+    <div class="topbar"></div>
+
+    <div class="hero">
+      <h1 id="hero-title">Salom 👋</h1>
+      <p>Bugungi sog'liq holatingizni shu yerdan boshqaring — suv, uyqu, mashg'ulot, dorilar va shifokor navbatlari bir joyda.</p>
+      <div class="feature-grid">
+        <a class="feature-tile" href="workouts.html">
+          <span class="tile-icon">🏋️</span>
+          <span class="tile-label">Mashg'ulotlar</span>
+        </a>
+        <a class="feature-tile" href="medications.html">
+          <span class="tile-icon">💊</span>
+          <span class="tile-label">Dori vaqti</span>
+        </a>
+        <a class="feature-tile" href="appointments.html">
+          <span class="tile-icon">🩺</span>
+          <span class="tile-label">Shifokor navbati</span>
+        </a>
+        <a class="feature-tile" href="emergency.html">
+          <span class="tile-icon">🚨</span>
+          <span class="tile-label">Favqulodda yordam</span>
+        </a>
+        <a class="feature-tile" href="change_habit.html">
+          <span class="tile-icon">⚙️</span>
+          <span class="tile-label">Sozlamalar</span>
+        </a>
+      </div>
+    </div>
+
+    <div id="habit-cards"></div>
+    <div id="add-more-section"></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="js/bg3d.js?v=2"></script>
+  <script src="js/app.js"></script>
+  <script src="js/habits.js"></script>
+  <script>
+    initPage({ requireAuth: true });
+    const user = currentUser();
+    document.getElementById("hero-title").textContent = `Salom, ${user.username} 👋`;
+
+    const habits = userHabits(user.id);
+    if (!habits.length) {
+      window.location.href = "setup.html";
+    } else {
+      renderDashboard();
+    }
+
+    function renderDashboard() {
+      const cardsWrap = document.getElementById("habit-cards");
+      cardsWrap.innerHTML = habits
+        .map((habit) => {
+          const meta = HABIT_META[habit.habit_type];
+          const plant = plantStageInfo(habit);
+          const streak = currentStreak(habit);
+          const progress = todayProgress(habit);
+          const percent = todayPercent(habit);
+          const message = motivationalMessage(habit);
+          const week = weekLogs(habit);
+          const weekRate = weekCompletionRate(habit);
+
+          const weekHtml = week
+            .map(
+              (day) => `
+            <div class="day-col">
+              <div class="day-bar-outer">
+                <div class="day-bar-inner ${day.completed ? "complete" : ""}" style="height: ${day.percent}%;"></div>
+              </div>
+              <div class="day-amount">${day.amount}</div>
+              <div class="day-label">${fmtWeekday(day.date)}</div>
+            </div>`
+            )
+            .join("");
+
+          return `
+          <div class="card habit-card ${habit.habit_type}">
+            <div class="card-header-row">
+              <div class="card-title-row">
+                <div class="card-icon icon-${habit.habit_type}">${meta.icon}</div>
+                <div>
+                  <span class="badge badge-${habit.habit_type}">${meta.label.toUpperCase()}</span>
+                  <h1 class="title" style="margin:6px 0 0;">Bugungi maqsad: ${habit.daily_goal} ${meta.unit}</h1>
+                </div>
+              </div>
+              <span class="badge-selected"><span class="dot">✓</span> FAOL</span>
+            </div>
+
+            <div class="plant-box">
+              <div class="plant-emoji">${plant.emoji}</div>
+              <div class="plant-info">
+                <div class="plant-name">${plant.name}</div>
+                <div class="plant-hint">${plant.hint}</div>
+              </div>
+            </div>
+
+            <div class="section-label">Bugungi progress</div>
+            <div class="progress-outer">
+              <div class="progress-inner" style="width: ${percent}%;"></div>
+            </div>
+            <div class="progress-text">${progress} / ${habit.daily_goal} ${meta.unit} (${percent}%)</div>
+
+            <form class="quick-add" data-habit-id="${habit.id}">
+              <input type="number" name="amount" min="1" placeholder="Miqdor" required>
+              <button class="btn" type="submit">Qo'shish</button>
+            </form>
+            <div class="quick-chips">
+              <button class="chip-btn" type="button" data-habit-id="${habit.id}" data-amount="1">+1</button>
+              <button class="chip-btn" type="button" data-habit-id="${habit.id}" data-amount="2">+2</button>
+            </div>
+
+            <div class="message-box">💬 ${escapeHtml(message)}</div>
+
+            <div class="streak-row">
+              <div class="stat-pill">Joriy silsila: <b>${streak} kun</b></div>
+              <div class="stat-pill">Haftalik bajarilish: <b>${weekRate}%</b></div>
+            </div>
+
+            <div class="section-label">Oxirgi 7 kun</div>
+            <div class="week-grid">${weekHtml}</div>
+            <p class="muted-link" style="margin-top:14px;"><a href="weekly.html?type=${habit.habit_type}">To'liq haftalik hisobotni ko'rish →</a></p>
+          </div>`;
+        })
+        .join("");
+
+      cardsWrap.querySelectorAll("form.quick-add").forEach((form) => {
+        form.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const habitId = parseInt(form.dataset.habitId, 10);
+          const amount = parseInt(form.querySelector("input[name=amount]").value, 10);
+          if (!amount || amount < 1) return;
+          quickAdd(habitId, amount);
+        });
+      });
+      cardsWrap.querySelectorAll(".chip-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          quickAdd(parseInt(btn.dataset.habitId, 10), parseInt(btn.dataset.amount, 10));
+        });
+      });
+
+      const available = availableTypes(user.id);
+      const addMoreWrap = document.getElementById("add-more-section");
+      if (available.length) {
+        addMoreWrap.innerHTML = `
+          <div class="card">
+            <div class="section-label">Yana odat qo'shish</div>
+            <div class="add-more-grid">
+              ${available
+                .map(
+                  (t) => `
+                <a class="add-more-tile" href="setup.html?type=${t}">
+                  <span class="tile-icon-big">${HABIT_META[t].icon}</span>
+                  <div><div class="tile-title">${HABIT_META[t].label}</div><div class="tile-desc">${t === "water" ? "Kunlik suv me'yorini kuzating" : t === "sleep" ? "Uyqu davomiyligini kuzating" : "Kunlik jismoniy faollikni kuzating"}</div></div>
+                </a>`
+                )
+                .join("")}
+            </div>
+          </div>`;
+      } else {
+        addMoreWrap.innerHTML = "";
+      }
+    }
+
+    function quickAdd(habitId, amount) {
+      const habit = habitById(habitId);
+      addHabitProgress(habitId, amount);
+      const updated = habitById(habitId);
+      if (todayProgress(updated) >= updated.daily_goal) {
+        flash(`${HABIT_META[updated.habit_type].label}: bugungi maqsad bajarildi! 🎉`);
+      }
+      window.location.reload();
+    }
+  </script>
+  <script src="js/tilt.js?v=2"></script>
+</body>
+</html>

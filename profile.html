@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profil - HealthTrack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="css/style.css?v=3">
+</head>
+<body>
+  <canvas id="bg3d-canvas"></canvas>
+  <div class="wrap">
+    <div class="topbar"></div>
+
+    <div class="hero">
+      <div class="profile-header">
+        <div class="avatar-circle" id="avatar"></div>
+        <div>
+          <h1 id="profile-name"></h1>
+          <p id="profile-sub"></p>
+        </div>
+      </div>
+      <div class="streak-row" style="margin-top:18px;" id="stats-row"></div>
+    </div>
+
+    <div class="card">
+      <span class="badge">SHAXSIY MA'LUMOTLAR</span>
+      <h1 class="title">Profilni tahrirlash</h1>
+      <p class="lede">Ism, email va aloqa ma'lumotlaringizni shu yerdan yangilang.</p>
+
+      <form id="profile-form">
+        <div class="form-row">
+          <div class="field-full">
+            <input type="text" id="first_name" placeholder="Ismingiz">
+          </div>
+          <div class="field-full">
+            <input type="text" id="last_name" placeholder="Familiyangiz">
+          </div>
+        </div>
+
+        <div class="section-label">Aloqa ma'lumotlari</div>
+        <input type="email" id="email" placeholder="email@example.com">
+        <div style="height:10px;"></div>
+        <input type="text" id="phone" placeholder="+998 90 123 45 67">
+
+        <div class="section-label">O'zingiz haqingizda</div>
+        <textarea id="bio" rows="3" placeholder="Qisqacha o'zingiz haqingizda..."></textarea>
+
+        <button class="btn" type="submit" style="margin-top:16px;">Saqlash</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <span class="badge" style="background:var(--accent-red-bg); color:var(--accent-red-text);">XAVFSIZLIK</span>
+      <h1 class="title">Parol</h1>
+      <p class="lede">Hisobingiz xavfsizligini ta'minlash uchun parolni muntazam yangilab turing.</p>
+      <a class="btn btn-secondary" href="password_change.html">🔒 Parolni o'zgartirish</a>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="js/bg3d.js?v=2"></script>
+  <script src="js/app.js"></script>
+  <script src="js/habits.js"></script>
+  <script src="js/care.js"></script>
+  <script>
+    initPage({ requireAuth: true });
+    const user = currentUser();
+    const profile = getProfile(user.id);
+
+    document.getElementById("avatar").textContent = user.username.charAt(0).toUpperCase();
+    document.getElementById("profile-name").textContent = (user.first_name + " " + user.last_name).trim() || user.username;
+    const joined = new Date(user.date_joined);
+    const joinedStr = `${String(joined.getDate()).padStart(2, "0")}.${String(joined.getMonth() + 1).padStart(2, "0")}.${joined.getFullYear()}`;
+    document.getElementById("profile-sub").textContent = `@${user.username} · ${joinedStr} sanasidan beri a'zo`;
+
+    const stats = profileStats(user.id);
+    document.getElementById("stats-row").innerHTML = `
+      <div class="stat-pill">🌱 Faol odatlar: <b>${stats.habit_count}</b></div>
+      <div class="stat-pill">🔥 Eng uzun silsila: <b>${stats.best_streak} kun</b></div>
+      <div class="stat-pill">🏋️ Mashg'ulotlar: <b>${stats.workout_count}</b></div>
+      <div class="stat-pill">💊 Faol dorilar: <b>${stats.medication_count}</b></div>
+      <div class="stat-pill">🩺 Kutilayotgan navbat: <b>${stats.upcoming_appointments}</b></div>
+    `;
+
+    document.getElementById("first_name").value = user.first_name || "";
+    document.getElementById("last_name").value = user.last_name || "";
+    document.getElementById("email").value = user.email || "";
+    document.getElementById("phone").value = profile.phone || "";
+    document.getElementById("bio").value = profile.bio || "";
+
+    document.getElementById("profile-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      updateProfile(
+        user.id,
+        {
+          first_name: document.getElementById("first_name").value.trim(),
+          last_name: document.getElementById("last_name").value.trim(),
+          email: document.getElementById("email").value.trim(),
+        },
+        {
+          phone: document.getElementById("phone").value.trim(),
+          bio: document.getElementById("bio").value.trim(),
+        }
+      );
+      flash("Profil ma'lumotlari yangilandi!");
+      window.location.href = "profile.html";
+    });
+  </script>
+  <script src="js/tilt.js?v=2"></script>
+</body>
+</html>

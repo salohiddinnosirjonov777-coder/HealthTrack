@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dori qo'shish - HealthTrack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="css/style.css?v=3">
+</head>
+<body>
+  <canvas id="bg3d-canvas"></canvas>
+  <div class="wrap">
+    <div class="topbar"></div>
+
+    <div class="card">
+      <span class="badge" style="background:var(--accent-purple-bg); color:var(--accent-purple-text);">YANGI DORI</span>
+      <h1 class="title">Dori va eslatma vaqtini qo'shing</h1>
+      <form id="med-form">
+        <div class="section-label">Dori nomi</div>
+        <input type="text" id="name" placeholder="Masalan: Vitamin D" required>
+        <ul class="errorlist" id="name-errors" style="display:none;"></ul>
+
+        <div class="section-label">Dozasi (ixtiyoriy)</div>
+        <input type="text" id="dosage" placeholder="Masalan: 1 tabletka">
+
+        <div class="section-label">Qabul vaqtlari</div>
+        <input type="text" id="times" placeholder="08:00, 14:00, 21:00" required>
+        <p class="helptext">Vergul bilan ajratib yozing, masalan: 08:00, 14:00, 21:00</p>
+        <ul class="errorlist" id="times-errors" style="display:none;"></ul>
+
+        <div class="section-label">Izoh (ixtiyoriy)</div>
+        <input type="text" id="notes" placeholder="Masalan: ovqatdan keyin ichish">
+
+        <button class="btn" type="submit" style="margin-top:18px;">Saqlash</button>
+        <a class="btn btn-secondary" href="medications.html" style="margin-top:18px;">Bekor qilish</a>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="js/bg3d.js?v=2"></script>
+  <script src="js/app.js"></script>
+  <script src="js/care.js"></script>
+  <script>
+    initPage({ requireAuth: true });
+    const user = currentUser();
+
+    document.getElementById("med-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      document.getElementById("name-errors").style.display = "none";
+      document.getElementById("times-errors").style.display = "none";
+
+      const name = document.getElementById("name").value.trim();
+      const timesRaw = document.getElementById("times").value;
+
+      if (!name) {
+        document.getElementById("name-errors").style.display = "block";
+        document.getElementById("name-errors").innerHTML = "<li>Dori nomini kiriting.</li>";
+        return;
+      }
+      const validated = validateMedicationTimes(timesRaw);
+      if (!validated.ok) {
+        document.getElementById("times-errors").style.display = "block";
+        document.getElementById("times-errors").innerHTML = `<li>${escapeHtml(validated.error)}</li>`;
+        return;
+      }
+
+      const med = addMedication(user.id, {
+        name,
+        dosage: document.getElementById("dosage").value.trim(),
+        times: validated.value,
+        notes: document.getElementById("notes").value.trim(),
+      });
+      flash(`'${med.name}' dorisi qo'shildi.`);
+      window.location.href = "medications.html";
+    });
+  </script>
+  <script src="js/tilt.js?v=2"></script>
+</body>
+</html>

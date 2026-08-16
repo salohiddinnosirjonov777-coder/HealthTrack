@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ro'yxatdan o'tish - HealthTrack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="css/style.css?v=3">
+</head>
+<body>
+  <canvas id="bg3d-canvas"></canvas>
+  <div class="wrap">
+    <div class="topbar"></div>
+
+    <div class="card auth-card">
+      <h1 class="title">Ro'yxatdan o'tish</h1>
+      <p class="lede" style="text-align:center;">Bir daqiqada boshlang.</p>
+      <ul class="errorlist" id="form-errors" style="display:none;"></ul>
+      <form id="signup-form">
+        <div class="field-full">
+          <input type="text" name="username" id="username" placeholder="Foydalanuvchi nomi" autocomplete="username" required>
+        </div>
+        <div class="field-full">
+          <input type="password" name="password1" id="password1" placeholder="Parol" autocomplete="new-password" required>
+        </div>
+        <div class="field-full">
+          <input type="password" name="password2" id="password2" placeholder="Parolni tasdiqlang" autocomplete="new-password" required>
+        </div>
+        <button class="btn" type="submit">Hisob yaratish</button>
+      </form>
+      <p class="muted-link">Hisobingiz bormi? <a href="login.html">Kirish</a></p>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="js/bg3d.js?v=2"></script>
+  <script src="js/app.js"></script>
+  <script src="js/habits.js"></script>
+  <script>
+    initPage({ guestOnly: true, guestOnlyTarget: "dashboard.html" });
+
+    document.getElementById("signup-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const username = document.getElementById("username").value;
+      const password1 = document.getElementById("password1").value;
+      const password2 = document.getElementById("password2").value;
+      const result = signupUser({ username, password1, password2 });
+      const errBox = document.getElementById("form-errors");
+      if (result.ok) {
+        window.location.href = "setup.html";
+      } else {
+        errBox.style.display = "block";
+        errBox.innerHTML = result.errors.map((e) => `<li>${escapeHtml(e)}</li>`).join("");
+      }
+    });
+  </script>
+  <script src="js/tilt.js?v=2"></script>
+</body>
+</html>

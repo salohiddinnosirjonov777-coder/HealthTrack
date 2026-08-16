@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kirish - HealthTrack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="css/style.css?v=3">
+</head>
+<body>
+  <canvas id="bg3d-canvas"></canvas>
+  <div class="wrap">
+    <div class="topbar"></div>
+
+    <div class="card auth-card">
+      <h1 class="title">Xush kelibsiz</h1>
+      <p class="lede" style="text-align:center;">Suv, uyqu, mashg'ulot, dorilar va shifokor navbatlarini bir joyda kuzating.</p>
+      <ul class="errorlist" id="form-errors" style="display:none;"></ul>
+      <form id="login-form">
+        <div class="field-full">
+          <input type="text" name="username" id="username" placeholder="Foydalanuvchi nomi" autocomplete="username" required>
+        </div>
+        <div class="field-full">
+          <input type="password" name="password" id="password" placeholder="Parol" autocomplete="current-password" required>
+        </div>
+        <button class="btn" type="submit">Kirish</button>
+      </form>
+      <p class="muted-link">Hisobingiz yo'qmi? <a href="signup.html">Ro'yxatdan o'ting</a></p>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="js/bg3d.js?v=2"></script>
+  <script src="js/app.js"></script>
+  <script>
+    initPage({ guestOnly: true, guestOnlyTarget: "dashboard.html" });
+
+    document.getElementById("login-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      const result = loginUser(username, password);
+      const errBox = document.getElementById("form-errors");
+      if (result.ok) {
+        window.location.href = "dashboard.html";
+      } else {
+        errBox.style.display = "block";
+        errBox.innerHTML = `<li>${escapeHtml(result.error)}</li>`;
+      }
+    });
+  </script>
+  <script src="js/tilt.js?v=2"></script>
+</body>
+</html>

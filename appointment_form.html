@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Navbat qo'shish - HealthTrack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="css/style.css?v=3">
+</head>
+<body>
+  <canvas id="bg3d-canvas"></canvas>
+  <div class="wrap">
+    <div class="topbar"></div>
+
+    <div class="card">
+      <span class="badge badge-water">YANGI NAVBAT</span>
+      <h1 class="title">Shifokor uchrashuvini qo'shing</h1>
+      <form id="appt-form">
+        <div class="section-label">Shifokor / klinika</div>
+        <input type="text" id="doctor_name" placeholder="Masalan: Dr. Aliyeva" required>
+        <ul class="errorlist" id="doctor-errors" style="display:none;"></ul>
+
+        <div class="section-label">Mutaxassislik (ixtiyoriy)</div>
+        <input type="text" id="specialty" placeholder="Masalan: Terapevt">
+
+        <div class="section-label">Manzil (ixtiyoriy)</div>
+        <input type="text" id="location" placeholder="Klinika manzili">
+
+        <div class="section-label">Sana va vaqt</div>
+        <input type="datetime-local" id="appointment_at" required>
+        <ul class="errorlist" id="datetime-errors" style="display:none;"></ul>
+
+        <div class="section-label">Izoh (ixtiyoriy)</div>
+        <input type="text" id="notes" placeholder="Qo'shimcha izoh">
+
+        <button class="btn" type="submit" style="margin-top:18px;">Saqlash</button>
+        <a class="btn btn-secondary" href="appointments.html" style="margin-top:18px;">Bekor qilish</a>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="js/bg3d.js?v=2"></script>
+  <script src="js/app.js"></script>
+  <script src="js/care.js"></script>
+  <script>
+    initPage({ requireAuth: true });
+    const user = currentUser();
+
+    document.getElementById("appt-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      document.getElementById("doctor-errors").style.display = "none";
+      document.getElementById("datetime-errors").style.display = "none";
+
+      const doctorName = document.getElementById("doctor_name").value.trim();
+      const apptAt = document.getElementById("appointment_at").value;
+
+      if (!doctorName) {
+        document.getElementById("doctor-errors").style.display = "block";
+        document.getElementById("doctor-errors").innerHTML = "<li>Shifokor / klinika nomini kiriting.</li>";
+        return;
+      }
+      if (!apptAt) {
+        document.getElementById("datetime-errors").style.display = "block";
+        document.getElementById("datetime-errors").innerHTML = "<li>Sana va vaqtni tanlang.</li>";
+        return;
+      }
+
+      addAppointment(user.id, {
+        doctor_name: doctorName,
+        specialty: document.getElementById("specialty").value.trim(),
+        location: document.getElementById("location").value.trim(),
+        appointment_at: apptAt,
+        notes: document.getElementById("notes").value.trim(),
+      });
+      flash("Shifokorga navbat qo'shildi.");
+      window.location.href = "appointments.html";
+    });
+  </script>
+  <script src="js/tilt.js?v=2"></script>
+</body>
+</html>

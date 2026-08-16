@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Haftalik hisobot - HealthTrack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="css/style.css?v=3">
+</head>
+<body>
+  <canvas id="bg3d-canvas"></canvas>
+  <div class="wrap">
+    <div class="topbar"></div>
+
+    <div class="card" id="weekly-card">
+      <div class="card-title-row" style="margin-bottom:14px;">
+        <div class="card-icon" id="weekly-icon"></div>
+        <div>
+          <span class="badge" id="weekly-badge">HAFTALIK TAHLIL</span>
+          <h1 class="title" id="weekly-title" style="margin:6px 0 0;"></h1>
+        </div>
+      </div>
+
+      <div class="rate-circle">
+        <div class="rate-number" id="rate-number"></div>
+        <div class="lede" style="margin:0;">kunlarda maqsad to'liq bajarilgan</div>
+      </div>
+
+      <div class="section-label" id="chart-label"></div>
+      <canvas id="weekChart" height="140"></canvas>
+
+      <div class="section-label">Xulosa</div>
+      <ul id="summary-list" style="padding-left: 18px; color: var(--teal-text); line-height:1.8;"></ul>
+      <p class="muted-link"><a href="dashboard.html">← Bugungi sahifaga qaytish</a></p>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="js/bg3d.js?v=2"></script>
+  <script src="js/app.js"></script>
+  <script src="js/habits.js"></script>
+  <script>
+    initPage({ requireAuth: true });
+    const user = currentUser();
+    const params = new URLSearchParams(window.location.search);
+    const habitType = params.get("type");
+    const habit = habitByType(user.id, habitType);
+
+    if (!habit) {
+      window.location.href = "dashboard.html";
+    } else {
+      const meta = HABIT_META[habit.habit_type];
+      const week = weekLogs(habit);
+      const weekRate = weekCompletionRate(habit);
+
+      document.getElementById("weekly-icon").className = `card-icon icon-${habit.habit_type}`;
+      document.getElementById("weekly-icon").textContent = meta.icon;
+      document.getElementById("weekly-badge").className = `badge badge-${habit.habit_type}`;
+      document.getElementById("weekly-title").textContent = `${meta.label} — so'nggi 7 kun`;
+      document.getElementById("rate-number").textContent = `${weekRate}%`;
+      document.getElementById("chart-label").textContent = `Kunlik ko'rsatkich (${meta.unit})`;
+
+      document.getElementById("summary-list").innerHTML = week
+        .map(
+          (day) =>
+            `<li>${fmtDayMonth(day.date)}: <b>${day.amount} ${meta.unit}</b>${
+              day.completed ? " — maqsad bajarildi ✅" : " — maqsadgacha yetmadi"
+            }</li>`
+        )
+        .join("");
+    }
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <script>
+    if (habit) {
+      const labels = week.map((d) => fmtWeekday(d.date));
+      const values = week.map((d) => d.amount);
+      const ctx = document.getElementById("weekChart").getContext("2d");
+      new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: HABIT_META[habit.habit_type].unit,
+              data: values,
+              backgroundColor: "#1a9b6c",
+              borderRadius: 8,
+            },
+            {
+              label: "Maqsad",
+              data: Array(labels.length).fill(habit.daily_goal),
+              type: "line",
+              borderColor: "#f5a35c",
+              borderDash: [6, 6],
+              pointRadius: 0,
+            },
+          ],
+        },
+        options: {
+          plugins: { legend: { display: true, position: "bottom" } },
+          scales: { y: { beginAtZero: true } },
+        },
+      });
+    }
+  </script>
+  <script src="js/tilt.js?v=2"></script>
+</body>
+</html>

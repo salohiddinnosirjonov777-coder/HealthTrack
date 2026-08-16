@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sozlamalar - HealthTrack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="css/style.css?v=3">
+</head>
+<body>
+  <canvas id="bg3d-canvas"></canvas>
+  <div class="wrap">
+    <div class="topbar"></div>
+
+    <div class="card">
+      <span class="badge">SOZLAMALAR</span>
+      <h1 class="title">Odatlarni boshqarish</h1>
+      <p class="lede">
+        Har bir odat turini alohida o'chirishingiz mumkin. O'chirilgan odatning tarixi va silsilasi qaytarib bo'lmaydigan tarzda yo'qoladi.
+      </p>
+
+      <div id="habits-list"></div>
+
+      <a class="btn" style="margin-top:16px; display:none;" id="add-habit-link" href="setup.html">+ Yangi odat qo'shish</a>
+      <p class="muted-link"><a href="dashboard.html">← Bugungi sahifaga qaytish</a></p>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="js/bg3d.js?v=2"></script>
+  <script src="js/app.js"></script>
+  <script src="js/habits.js"></script>
+  <script>
+    initPage({ requireAuth: true });
+    const user = currentUser();
+
+    function render() {
+      const habits = userHabits(user.id);
+      const listWrap = document.getElementById("habits-list");
+      if (habits.length) {
+        listWrap.innerHTML = habits
+          .map(
+            (habit) => `
+          <div class="contact-item">
+            <div>
+              <div class="contact-name">${HABIT_META[habit.habit_type].icon} ${HABIT_META[habit.habit_type].label}</div>
+              <div class="contact-relation">${habit.daily_goal} ${HABIT_META[habit.habit_type].unit}/kun</div>
+            </div>
+            <form data-habit-id="${habit.id}" data-label="${escapeHtml(HABIT_META[habit.habit_type].label)}">
+              <button class="btn btn-outline-danger btn-sm" type="submit">O'chirish</button>
+            </form>
+          </div>`
+          )
+          .join("");
+      } else {
+        listWrap.innerHTML = `
+          <div class="empty-state">
+            <span class="empty-icon">🌱</span>
+            Hozircha hech qanday odat qo'shilmagan.
+          </div>`;
+      }
+
+      listWrap.querySelectorAll("form").forEach((form) => {
+        form.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const label = form.dataset.label;
+          if (confirm(`Rostdan ham "${label}" odatini o'chirmoqchimisiz? Tarix o'chib ketadi.`)) {
+            deleteHabit(parseInt(form.dataset.habitId, 10));
+            flash(`${label} kuzatuvi o'chirildi.`);
+            window.location.href = "change_habit.html";
+          }
+        });
+      });
+
+      document.getElementById("add-habit-link").style.display = availableTypes(user.id).length ? "inline-flex" : "none";
+    }
+
+    render();
+  </script>
+  <script src="js/tilt.js?v=2"></script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mashg'ulotlar - HealthTrack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="css/style.css?v=3">
+</head>
+<body>
+  <canvas id="bg3d-canvas"></canvas>
+  <div class="wrap">
+    <div class="topbar"></div>
+
+    <div class="card">
+      <div class="card-header-row">
+        <div>
+          <span class="badge" style="background:var(--accent-orange-bg); color:var(--accent-orange-text);">JISMONIY FAOLLIK</span>
+          <h1 class="page-title" style="margin-top:8px;">🏋️ Mashg'ulotlar</h1>
+          <p class="page-subtitle">Har bir mashg'ulotni qo'shib boring — bugungisi va butun tarixingiz shu yerda.</p>
+        </div>
+      </div>
+
+      <div class="rate-circle">
+        <div class="rate-number" id="today-total"></div>
+        <div class="lede" style="margin:0;">daqiqa — bugun jami mashg'ulot vaqti</div>
+      </div>
+
+      <div class="section-label">Yangi mashg'ulot qo'shish</div>
+      <form id="workout-form">
+        <input type="text" id="w-name" placeholder="Masalan: Yugurish, Zaldagi mashqlar" required>
+        <ul class="errorlist" id="name-errors" style="display:none;"></ul>
+        <div style="height:10px;"></div>
+        <input type="number" id="w-duration" placeholder="Daqiqa" min="1" required>
+        <ul class="errorlist" id="duration-errors" style="display:none;"></ul>
+        <div style="height:10px;"></div>
+        <input type="text" id="w-notes" placeholder="Ixtiyoriy izoh">
+        <button class="btn" type="submit" style="margin-top:14px;">+ Mashg'ulot qo'shish</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Bugungi mashg'ulotlar</div>
+      <div id="today-workouts"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Barcha mashg'ulotlar</div>
+      <div id="all-workouts"></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="js/bg3d.js?v=2"></script>
+  <script src="js/app.js"></script>
+  <script src="js/care.js"></script>
+  <script>
+    initPage({ requireAuth: true });
+    const user = currentUser();
+
+    function render() {
+      const todayWorkouts = userWorkoutsToday(user.id);
+      const allWorkouts = userWorkoutsAll(user.id);
+      const todayTotal = todayWorkouts.reduce((sum, w) => sum + w.duration_minutes, 0);
+      document.getElementById("today-total").textContent = todayTotal;
+
+      const todayWrap = document.getElementById("today-workouts");
+      todayWrap.innerHTML = todayWorkouts.length
+        ? `<div class="med-list">${todayWorkouts
+            .map(
+              (w) => `
+          <div class="med-item">
+            <div class="med-item-head">
+              <div>
+                <div class="med-name">${escapeHtml(w.name)}</div>
+                <div class="med-dosage">${w.duration_minutes} daqiqa · ${fmtDateTimeLocal(w.done_at).time}</div>
+                ${w.notes ? `<div class="med-notes">${escapeHtml(w.notes)}</div>` : ""}
+              </div>
+              <button class="icon-btn" type="button" data-delete="${w.id}" data-name="${escapeHtml(w.name)}" title="O'chirish">✕ O'chirish</button>
+            </div>
+          </div>`
+            )
+            .join("")}</div>`
+        : `<div class="empty-state"><span class="empty-icon">🏋️</span>Bugun hali mashg'ulot qo'shilmagan.</div>`;
+
+      const allWrap = document.getElementById("all-workouts");
+      allWrap.innerHTML = allWorkouts.length
+        ? allWorkouts
+            .map((w) => {
+              const dt = fmtDateTimeLocal(w.done_at);
+              return `
+          <div class="appt-item">
+            <div class="appt-date">
+              <div class="day">${dt.day}</div>
+              <div class="month">${dt.monthTime}</div>
+            </div>
+            <div class="appt-main">
+              <div class="appt-doctor">${escapeHtml(w.name)}</div>
+              <div class="appt-meta">${w.duration_minutes} daqiqa${w.notes ? " · " + escapeHtml(w.notes) : ""}</div>
+            </div>
+            <div class="appt-actions">
+              <button class="icon-btn" type="button" data-delete="${w.id}">✕</button>
+            </div>
+          </div>`;
+            })
+            .join("")
+        : `<div class="empty-state"><span class="empty-icon">📋</span>Hozircha mashg'ulotlar tarixi bo'sh.</div>`;
+
+      document.querySelectorAll("[data-delete]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const name = btn.dataset.name;
+          const msg = name ? `"${name}" mashg'ulotini o'chirmoqchimisiz?` : "O'chirilsinmi?";
+          if (confirm(msg)) {
+            deleteWorkout(parseInt(btn.dataset.delete, 10));
+            flash("Mashg'ulot o'chirildi.");
+            window.location.href = "workouts.html";
+          }
+        });
+      });
+    }
+    render();
+
+    document.getElementById("workout-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      document.getElementById("name-errors").style.display = "none";
+      document.getElementById("duration-errors").style.display = "none";
+      const name = document.getElementById("w-name").value.trim();
+      const duration = parseInt(document.getElementById("w-duration").value, 10);
+      if (!name) {
+        document.getElementById("name-errors").style.display = "block";
+        document.getElementById("name-errors").innerHTML = "<li>Mashg'ulot nomini kiriting.</li>";
+        return;
+      }
+      if (!duration || duration < 1) {
+        document.getElementById("duration-errors").style.display = "block";
+        document.getElementById("duration-errors").innerHTML = "<li>Davomiylikni to'g'ri kiriting.</li>";
+        return;
+      }
+      const workout = addWorkout(user.id, { name, duration_minutes: duration, notes: document.getElementById("w-notes").value.trim() });
+      flash(`'${workout.name}' mashg'uloti qo'shildi.`);
+      window.location.href = "workouts.html";
+    });
+  </script>
+  <script src="js/tilt.js?v=2"></script>
+</body>
+</html>

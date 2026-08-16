@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shifokor navbati - HealthTrack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="css/style.css?v=3">
+</head>
+<body>
+  <canvas id="bg3d-canvas"></canvas>
+  <div class="wrap">
+    <div class="topbar"></div>
+
+    <div class="card">
+      <div class="card-header-row">
+        <div>
+          <span class="badge badge-water">SHIFOKORGA NAVBAT</span>
+          <h1 class="page-title" style="margin-top:8px;">🩺 Shifokor uchrashuvlari</h1>
+          <p class="page-subtitle">Yaqinlashib kelayotgan va o'tgan navbatlaringizni shu yerda kuzatib boring.</p>
+        </div>
+        <a class="btn" href="appointment_form.html">+ Navbat qo'shish</a>
+      </div>
+
+      <div class="section-label">Kutilayotgan navbatlar</div>
+      <div id="upcoming-list"></div>
+
+      <div id="history-wrap"></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="js/bg3d.js?v=2"></script>
+  <script src="js/app.js"></script>
+  <script src="js/care.js"></script>
+  <script>
+    initPage({ requireAuth: true });
+    const user = currentUser();
+
+    function apptItemUpcoming(appt) {
+      const dt = fmtDateTimeLocal(appt.appointment_at);
+      return `
+      <div class="appt-item">
+        <div class="appt-date">
+          <div class="day">${dt.day}</div>
+          <div class="month">${dt.monthTime}</div>
+        </div>
+        <div class="appt-main">
+          <div class="appt-doctor">${escapeHtml(appt.doctor_name)}</div>
+          <div class="appt-meta">${[appt.specialty, appt.location].filter(Boolean).map(escapeHtml).join(" · ")}</div>
+          ${appt.notes ? `<div class="appt-meta">${escapeHtml(appt.notes)}</div>` : ""}
+        </div>
+        <div class="appt-actions">
+          <span class="badge-status scheduled">Kutilmoqda</span>
+          <button class="btn btn-sm btn-secondary" type="button" data-status="done" data-id="${appt.id}">Bo'lib o'tdi</button>
+          <button class="btn btn-sm btn-outline-danger" type="button" data-status="cancelled" data-id="${appt.id}">Bekor qilish</button>
+        </div>
+      </div>`;
+    }
+    function apptItemHistory(appt) {
+      const dt = fmtDateTimeLocal(appt.appointment_at);
+      return `
+      <div class="appt-item">
+        <div class="appt-date">
+          <div class="day">${dt.day}</div>
+          <div class="month">${dt.month}</div>
+        </div>
+        <div class="appt-main">
+          <div class="appt-doctor">${escapeHtml(appt.doctor_name)}</div>
+          <div class="appt-meta">${appt.specialty ? escapeHtml(appt.specialty) : ""}</div>
+        </div>
+        <div class="appt-actions">
+          <span class="badge-status ${appt.status}">${APPT_STATUS_LABEL[appt.status]}</span>
+          <button class="icon-btn" type="button" data-delete="${appt.id}">✕</button>
+        </div>
+      </div>`;
+    }
+
+    function render() {
+      const upcoming = userAppointmentsUpcoming(user.id);
+      const history = userAppointmentsHistory(user.id);
+
+      const upcomingWrap = document.getElementById("upcoming-list");
+      upcomingWrap.innerHTML = upcoming.length
+        ? upcoming.map(apptItemUpcoming).join("")
+        : `<div class="empty-state"><span class="empty-icon">🗓️</span>Hozircha rejalashtirilgan navbat yo'q.</div>`;
+
+      const historyWrap = document.getElementById("history-wrap");
+      if (history.length) {
+        historyWrap.innerHTML = `<div class="section-label">Tarix</div>${history.map(apptItemHistory).join("")}`;
+      } else {
+        historyWrap.innerHTML = "";
+      }
+
+      document.querySelectorAll("[data-status]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const status = btn.dataset.status;
+          setAppointmentStatus(parseInt(btn.dataset.id, 10), status);
+          flash(`Navbat holati: ${APPT_STATUS_LABEL[status]}`);
+          window.location.href = "appointments.html";
+        });
+      });
+      document.querySelectorAll("[data-delete]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          if (confirm("O'chirilsinmi?")) {
+            deleteAppointment(parseInt(btn.dataset.delete, 10));
+            flash("Navbat o'chirildi.");
+            window.location.href = "appointments.html";
+          }
+        });
+      });
+    }
+
+    render();
+  </script>
+  <script src="js/tilt.js?v=2"></script>
+</body>
+</html>

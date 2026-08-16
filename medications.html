@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dorilar - HealthTrack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="css/style.css?v=3">
+</head>
+<body>
+  <canvas id="bg3d-canvas"></canvas>
+  <div class="wrap">
+    <div class="topbar"></div>
+
+    <div class="card">
+      <div class="card-header-row">
+        <div>
+          <span class="badge badge-water" style="background:var(--accent-purple-bg); color:var(--accent-purple-text);">DORI VAQTI</span>
+          <h1 class="page-title" style="margin-top:8px;">💊 Dorilaringiz</h1>
+          <p class="page-subtitle">Har bir dorining qabul vaqtini belgilang va bugun ichganingizni tugma bosib qayd eting.</p>
+        </div>
+        <a class="btn" href="medication_form.html">+ Dori qo'shish</a>
+      </div>
+
+      <div id="med-list"></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="js/bg3d.js?v=2"></script>
+  <script src="js/app.js"></script>
+  <script src="js/care.js"></script>
+  <script>
+    initPage({ requireAuth: true });
+    const user = currentUser();
+
+    function render() {
+      const meds = userMedications(user.id);
+      const wrap = document.getElementById("med-list");
+      if (!meds.length) {
+        wrap.innerHTML = `
+          <div class="empty-state">
+            <span class="empty-icon">💊</span>
+            Hali dori qo'shilmagan. Eslatma vaqtlarini sozlash uchun "Dori qo'shish" tugmasini bosing.
+          </div>`;
+        return;
+      }
+      wrap.innerHTML = `<div class="med-list">${meds
+        .map((med) => {
+          const schedule = medicationTodaySchedule(med);
+          return `
+        <div class="med-item">
+          <div class="med-item-head">
+            <div>
+              <div class="med-name">${escapeHtml(med.name)}</div>
+              ${med.dosage ? `<div class="med-dosage">${escapeHtml(med.dosage)}</div>` : ""}
+              ${med.notes ? `<div class="med-notes">${escapeHtml(med.notes)}</div>` : ""}
+            </div>
+            <button class="icon-btn" type="button" data-delete-med="${med.id}" data-name="${escapeHtml(med.name)}" title="O'chirish">✕ O'chirish</button>
+          </div>
+          <div class="time-slots">
+            ${schedule
+              .map(
+                (slot) => `
+              <button class="time-slot ${slot.taken ? "taken" : ""}" type="button" data-toggle-med="${med.id}" data-time="${slot.time}">
+                ${slot.taken ? "✓" : "🕐"} ${slot.time}
+              </button>`
+              )
+              .join("")}
+          </div>
+        </div>`;
+        })
+        .join("")}</div>`;
+
+      wrap.querySelectorAll("[data-toggle-med]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          toggleMedicationLog(parseInt(btn.dataset.toggleMed, 10), btn.dataset.time);
+          render();
+        });
+      });
+      wrap.querySelectorAll("[data-delete-med]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          if (confirm(`"${btn.dataset.name}" dorisini o'chirmoqchimisiz?`)) {
+            deleteMedication(parseInt(btn.dataset.deleteMed, 10));
+            flash("Dori o'chirildi.");
+            window.location.href = "medications.html";
+          }
+        });
+      });
+    }
+
+    render();
+  </script>
+  <script src="js/tilt.js?v=2"></script>
+</body>
+</html>

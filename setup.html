@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Odat qo'shish - HealthTrack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="css/style.css?v=3">
+</head>
+<body>
+  <canvas id="bg3d-canvas"></canvas>
+  <div class="wrap">
+    <div class="topbar"></div>
+
+    <div class="card">
+      <span class="badge" id="setup-badge">BOSHLASH</span>
+      <h1 class="title">Kuzatmoqchi bo'lgan odatni tanlang</h1>
+      <p class="lede">
+        Suv ichish, uyqu va mashg'ulotni alohida-alohida kuzatishingiz mumkin.
+        Har birini o'z vaqtida, bittalab qo'shib boring va kunlik maqsad belgilang.
+      </p>
+
+      <form id="setup-form">
+        <div class="radio-options" id="radio-options"></div>
+        <ul class="errorlist" id="type-errors" style="display:none;"></ul>
+
+        <div class="section-label">Kunlik maqsad</div>
+        <input type="number" min="1" id="daily_goal" name="daily_goal" required>
+        <ul class="errorlist" id="goal-errors" style="display:none;"></ul>
+        <p class="helptext">Masalan: suv uchun 8 stakan, uyqu uchun 8 soat, mashg'ulot uchun 20 daqiqa.</p>
+
+        <button class="btn" type="submit" style="margin-top:16px;">Qo'shish</button>
+        <a class="btn btn-secondary" href="dashboard.html" id="cancel-link" style="margin-top:16px; display:none;">Bekor qilish</a>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="js/bg3d.js?v=2"></script>
+  <script src="js/app.js"></script>
+  <script src="js/habits.js"></script>
+  <script>
+    initPage({ requireAuth: true });
+    const user = currentUser();
+    const available = availableTypes(user.id);
+    const hasHabits = userHabits(user.id).length > 0;
+
+    if (!available.length) {
+      flash("Barcha odat turlari allaqachon qo'shilgan.");
+      window.location.href = "dashboard.html";
+    } else {
+      document.getElementById("setup-badge").textContent = hasHabits ? "YANA QO'SHISH" : "BOSHLASH";
+      if (hasHabits) document.getElementById("cancel-link").style.display = "inline-flex";
+
+      const params = new URLSearchParams(window.location.search);
+      const requestedType = params.get("type");
+      const initialType = available.includes(requestedType) ? requestedType : available[0];
+
+      const radioWrap = document.getElementById("radio-options");
+      radioWrap.innerHTML = available
+        .map(
+          (t) => `
+        <label>
+          <input type="radio" name="habit_type" value="${t}" ${t === initialType ? "checked" : ""}>
+          ${HABIT_META[t].label}
+        </label>`
+        )
+        .join("");
+
+      document.getElementById("daily_goal").value = HABIT_META[initialType].defaultGoal;
+
+      radioWrap.addEventListener("change", (e) => {
+        const t = e.target.value;
+        document.getElementById("daily_goal").value = HABIT_META[t].defaultGoal;
+      });
+
+      document.getElementById("setup-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const checked = radioWrap.querySelector("input[name=habit_type]:checked");
+        const typeErrors = document.getElementById("type-errors");
+        const goalErrors = document.getElementById("goal-errors");
+        typeErrors.style.display = "none";
+        goalErrors.style.display = "none";
+
+        if (!checked) {
+          typeErrors.style.display = "block";
+          typeErrors.innerHTML = "<li>Odat turini tanlang.</li>";
+          return;
+        }
+        const goalVal = parseInt(document.getElementById("daily_goal").value, 10);
+        if (!goalVal || goalVal < 1) {
+          goalErrors.style.display = "block";
+          goalErrors.innerHTML = "<li>Kunlik maqsadni to'g'ri kiriting.</li>";
+          return;
+        }
+
+        const habit = createHabit(user.id, checked.value, goalVal);
+        flash(`${HABIT_META[habit.habit_type].label} kuzatuvi qo'shildi!`);
+
+        if (availableTypes(user.id).length) {
+          window.location.href = "setup.html";
+        } else {
+          window.location.href = "dashboard.html";
+        }
+      });
+    }
+  </script>
+  <script src="js/tilt.js?v=2"></script>
+</body>
+</html>
